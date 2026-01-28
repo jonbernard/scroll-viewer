@@ -1,7 +1,8 @@
 #!/bin/sh
 set -e
+export PATH="/app/tools/node_modules/.bin:$PATH"
 echo "Running database migrations..."
-npx prisma db push --skip-generate
+prisma db push --skip-generate
 echo "Migrations complete."
 export HOSTNAME=0.0.0.0
 exec "$@"
