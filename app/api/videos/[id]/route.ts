@@ -9,7 +9,22 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const video = await prisma.video.findUnique({
       where: { id },
       include: {
-        author: true,
+        author: {
+          // Avoid returning BigInt fields (e.g. heartCount) which aren't JSON serializable.
+          select: {
+            id: true,
+            uniqueId: true,
+            nickname: true,
+            avatarPath: true,
+            followerCount: true,
+            videoCount: true,
+            signature: true,
+            isFollowing: true,
+            _count: {
+              select: { videos: true },
+            },
+          },
+        },
       },
     });
 

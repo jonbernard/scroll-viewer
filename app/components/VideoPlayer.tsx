@@ -19,6 +19,10 @@ type WindowWithFirstUnmuteRestart = Window & {
   __svRestartedFirstUnmute?: boolean;
 };
 
+type WindowWithPlaybackStarted = Window & {
+  __svPlaybackStarted?: boolean;
+};
+
 function hasRestartedFirstUnmuteThisPage() {
   if (typeof window === "undefined") return false;
   return Boolean(
@@ -31,6 +35,18 @@ function markRestartedFirstUnmuteThisPage() {
   if (typeof window === "undefined") return;
   (window as unknown as WindowWithFirstUnmuteRestart).__svRestartedFirstUnmute =
     true;
+}
+
+function hasUserStartedPlaybackThisPage() {
+  if (typeof window === "undefined") return false;
+  return Boolean(
+    (window as unknown as WindowWithPlaybackStarted).__svPlaybackStarted,
+  );
+}
+
+function markUserStartedPlaybackThisPage() {
+  if (typeof window === "undefined") return;
+  (window as unknown as WindowWithPlaybackStarted).__svPlaybackStarted = true;
 }
 
 interface VideoPlayerProps {
@@ -91,6 +107,15 @@ export function VideoPlayer({
     });
 
     if (isActive) {
+      // On initial page load, keep the first video paused until the user explicitly starts playback.
+      // This avoids autoplay policies and guarantees sound once the user interacts.
+      if (isFirst && !hasUserStartedPlaybackThisPage()) {
+        debugLog("player", "initial playback gated", { videoId: video.id });
+        videoEl.pause();
+        setShowControls(true);
+        return;
+      }
+
       const playResult = videoEl.play();
       // In browsers this is a Promise; in some environments it may be void.
       if (
@@ -131,7 +156,7 @@ export function VideoPlayer({
       videoEl.pause();
       videoEl.currentTime = 0;
     }
-  }, [autoplayFallbackMuted, isActive, isMuted, video.id]);
+  }, [autoplayFallbackMuted, isActive, isFirst, isMuted, video.id]);
 
   // Handle mute state
   useEffect(() => {
@@ -207,6 +232,12 @@ export function VideoPlayer({
     }
 
     if (videoEl.paused) {
+      // A user gesture can start playback with sound.
+      markUserStartedPlaybackThisPage();
+      videoEl.muted = false;
+      if (videoEl.volume === 0) {
+        videoEl.volume = 1;
+      }
       videoEl.play();
     } else {
       videoEl.pause();

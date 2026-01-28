@@ -14,6 +14,9 @@ interface VideoFeedProps {
   isLoadingMore: boolean;
   hasMore: boolean;
   onLoadMore: () => void;
+  basePath: string;
+  initialVideoId?: string;
+  pageSize?: number;
 }
 
 export function VideoFeed({
@@ -22,6 +25,9 @@ export function VideoFeed({
   isLoadingMore,
   hasMore,
   onLoadMore,
+  basePath,
+  initialVideoId,
+  pageSize = 5,
 }: VideoFeedProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
@@ -30,6 +36,8 @@ export function VideoFeed({
   const observerRef = useRef<IntersectionObserver | null>(null);
   const visibilityRef = useRef<Record<number, number>>({});
   const loadMoreRef = useInfiniteScroll(onLoadMore, hasMore, isLoadingMore);
+  const didInitialScrollRef = useRef(false);
+  const lastPrefetchPageRef = useRef(-1);
 
   useEffect(() => {
     debugLog('feed', 'videos length', { length: videos.length });
@@ -41,6 +49,66 @@ export function VideoFeed({
       activeVideoId: videos[activeIndex]?.id,
     });
   }, [activeIndex, videos]);
+
+  // Deep link on initial mount: scroll to the requested video if present.
+  useEffect(() => {
+    if (didInitialScrollRef.current) return;
+    if (!initialVideoId) return;
+    if (videos.length === 0) return;
+
+    const idx = videos.findIndex((v) => v.id === initialVideoId);
+    if (idx < 0) {
+      didInitialScrollRef.current = true;
+      return;
+    }
+
+    didInitialScrollRef.current = true;
+    setActiveIndex(idx);
+    itemRefs.current[idx]?.scrollIntoView({ behavior: 'auto', block: 'start' });
+  }, [initialVideoId, videos]);
+
+  // Keep the URL in sync with the active video ID without triggering a Next.js navigation.
+  useEffect(() => {
+    const activeId = videos[activeIndex]?.id;
+    if (!activeId) return;
+    if (typeof window === 'undefined') return;
+
+    const normalizedBase = basePath.startsWith('/') ? basePath : `/${basePath}`;
+    const desiredPath = `${normalizedBase}/${activeId}`;
+    const desiredUrl = `${desiredPath}${window.location.search}`;
+
+    if (window.location.pathname !== desiredPath) {
+      window.history.replaceState(null, '', desiredUrl);
+    }
+  }, [activeIndex, basePath, videos]);
+
+  // Prefetch the next page when the user reaches the 4th item of each page-sized chunk.
+  useEffect(() => {
+    if (!hasMore || isLoadingMore) return;
+    if (videos.length === 0) return;
+    if (pageSize <= 0) return;
+
+    // Reset when the list is replaced (e.g. filter changed back to initial page).
+    if (videos.length <= pageSize) {
+      lastPrefetchPageRef.current = -1;
+    }
+
+    const idxInPage = activeIndex % pageSize;
+    const shouldPrefetchHere = idxInPage === Math.max(pageSize - 2, 0);
+    if (!shouldPrefetchHere) return;
+
+    const page = Math.floor(activeIndex / pageSize);
+    if (page <= lastPrefetchPageRef.current) return;
+
+    lastPrefetchPageRef.current = page;
+    debugLog('feed', 'prefetch next page', {
+      activeIndex,
+      page,
+      pageSize,
+      length: videos.length,
+    });
+    onLoadMore();
+  }, [activeIndex, hasMore, isLoadingMore, onLoadMore, pageSize, videos.length]);
 
   const setItemRef = useCallback((index: number) => {
     return (el: HTMLDivElement | null) => {
@@ -237,6 +305,9 @@ export function VideoFeed({
         className="flex h-20 items-center justify-center">
         {isLoadingMore && (
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
+        )}
+        {!hasMore && !isLoadingMore && (
+          <p className="text-sm font-semibold text-white/70">No more videos</p>
         )}
       </div>
     </div>

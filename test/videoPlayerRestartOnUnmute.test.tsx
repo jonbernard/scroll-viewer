@@ -1,18 +1,18 @@
-import { act, render } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, render } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
-import type { Video } from "@/app/lib/types";
+import type { Video } from '@/app/lib/types';
 
-import { VideoPlayer } from "@/app/components/VideoPlayer";
+import { VideoPlayer } from '@/app/components/VideoPlayer';
 
-function makeVideo(id = "v"): Video {
+function makeVideo(id = 'v'): Video {
   return {
     id,
-    authorId: "a",
+    authorId: 'a',
     author: {
-      id: "a",
-      uniqueId: "u",
-      nickname: "n",
+      id: 'a',
+      uniqueId: 'u',
+      nickname: 'n',
       avatarPath: null,
       followerCount: null,
       heartCount: null,
@@ -26,7 +26,7 @@ function makeVideo(id = "v"): Video {
     playCount: 0,
     audioId: null,
     size: null,
-    videoPath: "v.mp4",
+    videoPath: 'v.mp4',
     coverPath: null,
     isLiked: false,
     isFavorite: false,
@@ -34,20 +34,19 @@ function makeVideo(id = "v"): Video {
   };
 }
 
-describe("VideoPlayer restart-on-first-unmute", () => {
-  it("restarts only once per page load (not again after feed/tab switches)", async () => {
+describe('VideoPlayer restart-on-first-unmute', () => {
+  it('restarts only once per page load (not again after feed/tab switches)', async () => {
     // Clear global flag to simulate fresh page load.
     type WindowWithFirstUnmuteRestart = Window & {
       __svRestartedFirstUnmute?: boolean;
     };
-    delete (window as unknown as WindowWithFirstUnmuteRestart)
-      .__svRestartedFirstUnmute;
+    delete (window as unknown as WindowWithFirstUnmuteRestart).__svRestartedFirstUnmute;
 
     const playMock = vi.fn().mockResolvedValue(undefined);
 
     const { container, unmount } = render(
       <VideoPlayer
-        video={makeVideo("v0")}
+        video={makeVideo('v0')}
         isActive={true}
         isFirst={true}
         isMuted={true}
@@ -55,9 +54,9 @@ describe("VideoPlayer restart-on-first-unmute", () => {
       />,
     );
 
-    const videoEl = container.querySelector("video") as HTMLVideoElement;
+    const videoEl = container.querySelector('video') as HTMLVideoElement;
     expect(videoEl).toBeTruthy();
-    Object.defineProperty(videoEl, "play", {
+    Object.defineProperty(videoEl, 'play', {
       configurable: true,
       value: playMock,
     });
@@ -79,7 +78,7 @@ describe("VideoPlayer restart-on-first-unmute", () => {
 
     const next = render(
       <VideoPlayer
-        video={makeVideo("vNew")}
+        video={makeVideo('vNew')}
         isActive={true}
         isFirst={true}
         isMuted={true}
@@ -87,9 +86,9 @@ describe("VideoPlayer restart-on-first-unmute", () => {
       />,
     );
 
-    const videoEl2 = next.container.querySelector("video") as HTMLVideoElement;
+    const videoEl2 = next.container.querySelector('video') as HTMLVideoElement;
     expect(videoEl2).toBeTruthy();
-    Object.defineProperty(videoEl2, "play", {
+    Object.defineProperty(videoEl2, 'play', {
       configurable: true,
       value: playMock,
     });

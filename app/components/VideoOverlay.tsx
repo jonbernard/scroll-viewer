@@ -21,8 +21,8 @@ export function VideoOverlay({ video }: VideoOverlayProps) {
     shouldTruncate && !isExpanded ? `${description.slice(0, 100)}...` : description;
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/85 via-black/35 to-transparent px-4 pb-6 pt-3 safe-area-bottom">
-      <div className="max-w-80 pr-16">
+    <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/85 via-black/35 to-transparent px-4 pt-3 safe-area-bottom">
+      <div className="max-w-80 pr-16 pb-4">
         {/* Author */}
         <div className="mb-2 flex items-center gap-2">
           {avatarUrl ? (

@@ -8,15 +8,19 @@ interface UseVideoFeedOptions {
   type: FeedType;
   authorId?: string | null;
   limit?: number;
+  initial?: VideosResponse;
 }
 
-export function useVideoFeed({ type, authorId, limit = 20 }: UseVideoFeedOptions) {
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export function useVideoFeed({ type, authorId, limit = 20, initial }: UseVideoFeedOptions) {
+  const key = `${type}:${authorId ?? ''}:${limit}`;
+  const lastInitialKeyRef = useRef<string | null>(null);
+
+  const [videos, setVideos] = useState<Video[]>(initial?.videos ?? []);
+  const [isLoading, setIsLoading] = useState(!initial);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const cursorRef = useRef<string | null>(null);
+  const [hasMore, setHasMore] = useState(initial ? initial.nextCursor !== null : true);
+  const cursorRef = useRef<string | null>(initial?.nextCursor ?? null);
 
   const fetchVideos = useCallback(
     async (cursor?: string | null) => {
@@ -70,8 +74,18 @@ export function useVideoFeed({ type, authorId, limit = 20 }: UseVideoFeedOptions
 
   // Reset and reload when type or authorId changes
   useEffect(() => {
+    if (initial && lastInitialKeyRef.current !== key) {
+      lastInitialKeyRef.current = key;
+      setVideos(initial.videos);
+      cursorRef.current = initial.nextCursor;
+      setHasMore(initial.nextCursor !== null);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+
     loadInitial();
-  }, [loadInitial]);
+  }, [initial, key, loadInitial]);
 
   return {
     videos,
