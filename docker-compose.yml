@@ -55,6 +55,9 @@ services:
 networks:
   scroll-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 10.100.0.0/24
 
 volumes:
   postgres_data:
