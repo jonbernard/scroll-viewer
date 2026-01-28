@@ -1,23 +1,53 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { Video } from '@/app/lib/types';
+import type { Video } from "@/app/lib/types";
 
-import { debugLog } from '@/app/lib/debug';
-import { formatCount, getAvatarUrl, getCoverUrl, getVideoUrl } from '@/app/lib/utils';
+import { debugLog } from "@/app/lib/debug";
+import {
+  formatCount,
+  getAvatarUrl,
+  getCoverUrl,
+  getVideoUrl,
+} from "@/app/lib/utils";
 
-import { VideoOverlay } from './VideoOverlay';
+import { VideoOverlay } from "./VideoOverlay";
+
+type WindowWithFirstUnmuteRestart = Window & {
+  __svRestartedFirstUnmute?: boolean;
+};
+
+function hasRestartedFirstUnmuteThisPage() {
+  if (typeof window === "undefined") return false;
+  return Boolean(
+    (window as unknown as WindowWithFirstUnmuteRestart)
+      .__svRestartedFirstUnmute,
+  );
+}
+
+function markRestartedFirstUnmuteThisPage() {
+  if (typeof window === "undefined") return;
+  (window as unknown as WindowWithFirstUnmuteRestart).__svRestartedFirstUnmute =
+    true;
+}
 
 interface VideoPlayerProps {
   video: Video;
   isActive: boolean;
+  isFirst: boolean;
   isMuted: boolean;
   onMuteToggle: () => void;
 }
 
-export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPlayerProps) {
+export function VideoPlayer({
+  video,
+  isActive,
+  isFirst,
+  isMuted,
+  onMuteToggle,
+}: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -28,6 +58,7 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
   const [isLiked, setIsLiked] = useState(video.isLiked);
   const [isSaved, setIsSaved] = useState(video.isFavorite);
   const [autoplayFallbackMuted, setAutoplayFallbackMuted] = useState(false);
+  const restartedOnFirstUnmuteRef = useRef(false);
 
   const videoUrl = getVideoUrl(video.videoPath);
   const coverUrl = getCoverUrl(video.coverPath);
@@ -49,7 +80,7 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
     const videoEl = videoRef.current;
     if (!videoEl) return;
 
-    debugLog('player', 'active effect', {
+    debugLog("player", "active effect", {
       videoId: video.id,
       isActive,
       isMuted,
@@ -62,9 +93,12 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
     if (isActive) {
       const playResult = videoEl.play();
       // In browsers this is a Promise; in some environments it may be void.
-      if (playResult && typeof (playResult as Promise<void>).catch === 'function') {
+      if (
+        playResult &&
+        typeof (playResult as Promise<void>).catch === "function"
+      ) {
         (playResult as Promise<void>).catch(async (err) => {
-          debugLog('player', 'play() rejected', {
+          debugLog("player", "play() rejected", {
             videoId: video.id,
             name: err instanceof Error ? err.name : undefined,
             message: err instanceof Error ? err.message : String(err),
@@ -80,11 +114,11 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
             try {
               videoEl.muted = true;
               await videoEl.play();
-              debugLog('player', 'fallback muted autoplay ok', {
+              debugLog("player", "fallback muted autoplay ok", {
                 videoId: video.id,
               });
             } catch {
-              debugLog('player', 'fallback muted autoplay failed', {
+              debugLog("player", "fallback muted autoplay failed", {
                 videoId: video.id,
               });
               // ignore
@@ -93,7 +127,7 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
         });
       }
     } else {
-      debugLog('player', 'pause inactive', { videoId: video.id });
+      debugLog("player", "pause inactive", { videoId: video.id });
       videoEl.pause();
       videoEl.currentTime = 0;
     }
@@ -107,7 +141,7 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
       if (!effectiveMuted && videoEl.volume === 0) {
         videoEl.volume = 1;
       }
-      debugLog('player', 'mute applied', {
+      debugLog("player", "mute applied", {
         videoId: video.id,
         effectiveMuted,
         volume: videoEl.volume,
@@ -127,7 +161,7 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
     const handleLoadedMetadata = () => {
       setDuration(videoEl.duration);
       setIsLoaded(true);
-      debugLog('player', 'loadedmetadata', {
+      debugLog("player", "loadedmetadata", {
         videoId: video.id,
         duration: videoEl.duration,
       });
@@ -136,7 +170,7 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
     const handleError = () => {
-      debugLog('player', 'media error event', {
+      debugLog("player", "media error event", {
         videoId: video.id,
         errorCode: videoEl.error?.code ?? null,
         readyState: videoEl.readyState,
@@ -145,18 +179,18 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
       });
     };
 
-    videoEl.addEventListener('timeupdate', handleTimeUpdate);
-    videoEl.addEventListener('loadedmetadata', handleLoadedMetadata);
-    videoEl.addEventListener('play', handlePlay);
-    videoEl.addEventListener('pause', handlePause);
-    videoEl.addEventListener('error', handleError);
+    videoEl.addEventListener("timeupdate", handleTimeUpdate);
+    videoEl.addEventListener("loadedmetadata", handleLoadedMetadata);
+    videoEl.addEventListener("play", handlePlay);
+    videoEl.addEventListener("pause", handlePause);
+    videoEl.addEventListener("error", handleError);
 
     return () => {
-      videoEl.removeEventListener('timeupdate', handleTimeUpdate);
-      videoEl.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      videoEl.removeEventListener('play', handlePlay);
-      videoEl.removeEventListener('pause', handlePause);
-      videoEl.removeEventListener('error', handleError);
+      videoEl.removeEventListener("timeupdate", handleTimeUpdate);
+      videoEl.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      videoEl.removeEventListener("play", handlePlay);
+      videoEl.removeEventListener("pause", handlePause);
+      videoEl.removeEventListener("error", handleError);
     };
   }, [video.id]);
 
@@ -190,7 +224,7 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
 
   const handleVideoKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === ' ' || e.key === 'Enter') {
+      if (e.key === " " || e.key === "Enter") {
         e.preventDefault();
         handleVideoToggle();
       }
@@ -217,10 +251,10 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
       if (!videoEl || !duration) return;
 
       const step = duration * 0.05; // 5% of duration
-      if (e.key === 'ArrowRight') {
+      if (e.key === "ArrowRight") {
         e.preventDefault();
         videoEl.currentTime = Math.min(videoEl.currentTime + step, duration);
-      } else if (e.key === 'ArrowLeft') {
+      } else if (e.key === "ArrowLeft") {
         e.preventDefault();
         videoEl.currentTime = Math.max(videoEl.currentTime - step, 0);
       }
@@ -236,6 +270,18 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
     if (videoEl) {
       if (!nextMuted) {
         setAutoplayFallbackMuted(false);
+
+        // If the first video started muted due to autoplay policy, restart it once per page load when sound is enabled.
+        if (
+          isFirst &&
+          !restartedOnFirstUnmuteRef.current &&
+          !hasRestartedFirstUnmuteThisPage()
+        ) {
+          restartedOnFirstUnmuteRef.current = true;
+          markRestartedFirstUnmuteThisPage();
+          videoEl.currentTime = 0;
+          debugLog("player", "restart on first unmute", { videoId: video.id });
+        }
       }
       videoEl.muted = nextMuted;
 
@@ -251,7 +297,7 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
     }
 
     onMuteToggle();
-  }, [isMuted, onMuteToggle]);
+  }, [isFirst, isMuted, onMuteToggle, video.id]);
 
   const handleShare = useCallback(async () => {
     // Prefer native share when available; otherwise copy the direct media URL.
@@ -259,7 +305,7 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
       const shareUrl = window.location.href;
       if (navigator.share) {
         await navigator.share({
-          title: 'Video',
+          title: "Video",
           url: shareUrl,
         });
         return;
@@ -293,7 +339,8 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
         className="h-full w-full border-0 bg-transparent p-0"
         onClick={handleVideoToggle}
         onKeyDown={handleVideoKeyDown}
-        aria-label={isPlaying ? 'Pause video' : 'Play video'}>
+        aria-label={isPlaying ? "Pause video" : "Play video"}
+      >
         <video
           ref={videoRef}
           src={videoUrl}
@@ -313,7 +360,8 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
           type="button"
           className="group relative h-11 w-11 overflow-hidden rounded-full ring-2 ring-white/80 transition active:scale-95"
           aria-label={`@${video.author.uniqueId}`}
-          title={`@${video.author.uniqueId}`}>
+          title={`@${video.author.uniqueId}`}
+        >
           {avatarUrl ? (
             <Image
               src={avatarUrl}
@@ -335,16 +383,19 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
           type="button"
           onClick={() => setIsLiked((v) => !v)}
           className="flex flex-col items-center gap-1 text-white active:scale-95"
-          aria-label={isLiked ? 'Unlike' : 'Like'}>
+          aria-label={isLiked ? "Unlike" : "Like"}
+        >
           <div
             className={`flex h-11 w-11 items-center justify-center rounded-full bg-black/25 backdrop-blur-sm transition ${
-              isLiked ? 'text-pink-500' : 'text-white'
-            }`}>
+              isLiked ? "text-pink-500" : "text-white"
+            }`}
+          >
             <svg
               className="h-6 w-6"
               viewBox="0 0 24 24"
               fill="currentColor"
-              aria-hidden="true">
+              aria-hidden="true"
+            >
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
             </svg>
           </div>
@@ -362,21 +413,24 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
           type="button"
           onClick={() => setIsSaved((v) => !v)}
           className="flex flex-col items-center gap-1 text-white active:scale-95"
-          aria-label={isSaved ? 'Unsave' : 'Save'}>
+          aria-label={isSaved ? "Unsave" : "Save"}
+        >
           <div
             className={`flex h-11 w-11 items-center justify-center rounded-full bg-black/25 backdrop-blur-sm transition ${
-              isSaved ? 'text-yellow-400' : 'text-white'
-            }`}>
+              isSaved ? "text-yellow-400" : "text-white"
+            }`}
+          >
             <svg
               className="h-6 w-6"
               viewBox="0 0 24 24"
               fill="currentColor"
-              aria-hidden="true">
+              aria-hidden="true"
+            >
               <path d="M6 2h12a2 2 0 0 1 2 2v18l-8-4-8 4V4a2 2 0 0 1 2-2Z" />
             </svg>
           </div>
           <span className="text-[11px] font-semibold text-white/90">
-            {isSaved ? 'Saved' : 'Save'}
+            {isSaved ? "Saved" : "Save"}
           </span>
         </button>
 
@@ -385,13 +439,15 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
           type="button"
           onClick={handleShare}
           className="flex flex-col items-center gap-1 text-white/95 active:scale-95"
-          aria-label="Share">
+          aria-label="Share"
+        >
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/25 backdrop-blur-sm">
             <svg
               className="h-6 w-6"
               viewBox="0 0 24 24"
               fill="none"
-              aria-hidden="true">
+              aria-hidden="true"
+            >
               <path
                 d="M14 9l7 3-7 3V9Z"
                 stroke="currentColor"
@@ -414,7 +470,8 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
           type="button"
           onClick={handleMuteClick}
           className="flex flex-col items-center gap-1 text-white active:scale-95"
-          aria-label={isMuted ? 'Unmute' : 'Mute'}>
+          aria-label={isMuted ? "Unmute" : "Mute"}
+        >
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/25 backdrop-blur-sm">
             {isMuted ? (
               <svg
@@ -422,7 +479,8 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
-                aria-hidden="true">
+                aria-hidden="true"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -442,7 +500,8 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
-                aria-hidden="true">
+                aria-hidden="true"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -453,7 +512,7 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
             )}
           </div>
           <span className="text-[11px] font-semibold text-white/90">
-            {isMuted ? 'Muted' : 'Sound'}
+            {isMuted ? "Muted" : "Sound"}
           </span>
         </button>
       </div>
@@ -467,7 +526,8 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
                 className="h-12 w-12 text-white"
                 fill="currentColor"
                 viewBox="0 0 24 24"
-                aria-hidden="true">
+                aria-hidden="true"
+              >
                 <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
               </svg>
             ) : (
@@ -475,7 +535,8 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
                 className="h-12 w-12 text-white"
                 fill="currentColor"
                 viewBox="0 0 24 24"
-                aria-hidden="true">
+                aria-hidden="true"
+              >
                 <path d="M8 5v14l11-7z" />
               </svg>
             )}
@@ -493,7 +554,8 @@ export function VideoPlayer({ video, isActive, isMuted, onMuteToggle }: VideoPla
         aria-label="Video progress"
         aria-valuenow={Math.round(progressPercent)}
         aria-valuemin={0}
-        aria-valuemax={100}>
+        aria-valuemax={100}
+      >
         <div
           className="h-full bg-white transition-[width] duration-100"
           style={{ width: `${progressPercent}%` }}

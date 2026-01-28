@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { Video } from "@/app/lib/types";
+import type { Video } from '@/app/lib/types';
 
-import { VideoPlayer } from "@/app/components/VideoPlayer";
-import { useInfiniteScroll } from "@/app/hooks/useIntersectionObserver";
-import { debugLog } from "@/app/lib/debug";
+import { VideoPlayer } from '@/app/components/VideoPlayer';
+import { useInfiniteScroll } from '@/app/hooks/useIntersectionObserver';
+import { debugLog } from '@/app/lib/debug';
 
 interface VideoFeedProps {
   videos: Video[];
@@ -32,11 +32,11 @@ export function VideoFeed({
   const loadMoreRef = useInfiniteScroll(onLoadMore, hasMore, isLoadingMore);
 
   useEffect(() => {
-    debugLog("feed", "videos length", { length: videos.length });
+    debugLog('feed', 'videos length', { length: videos.length });
   }, [videos.length]);
 
   useEffect(() => {
-    debugLog("feed", "activeIndex changed", {
+    debugLog('feed', 'activeIndex changed', {
       activeIndex,
       activeVideoId: videos[activeIndex]?.id,
     });
@@ -70,11 +70,15 @@ export function VideoFeed({
     const container = containerRef.current;
     if (!container) return;
 
+    const listLength = videos.length;
+    debugLog('feed', 'observer sync', { length: listLength });
+    if (listLength === 0) return;
+
     // Reset visibility map when list size changes (filters / initial load / load more)
     visibilityRef.current = {};
 
     if (!observerRef.current) {
-      debugLog("feed", "IntersectionObserver init", {
+      debugLog('feed', 'IntersectionObserver init', {
         hasContainer: true,
         threshold: [0, 0.25, 0.5, 0.75, 0.9, 1],
       });
@@ -88,9 +92,7 @@ export function VideoFeed({
             const target = entry.target as HTMLDivElement;
             const idx = Number(target.dataset.index);
             if (!Number.isFinite(idx)) continue;
-            visibilityRef.current[idx] = entry.isIntersecting
-              ? entry.intersectionRatio
-              : 0;
+            visibilityRef.current[idx] = entry.isIntersecting ? entry.intersectionRatio : 0;
           }
 
           let bestIndex: number | null = null;
@@ -105,7 +107,7 @@ export function VideoFeed({
             }
           }
 
-          debugLog("feed", "IO tick", {
+          debugLog('feed', 'IO tick', {
             entries: entries.map((e) => ({
               idx: Number((e.target as HTMLDivElement).dataset.index),
               is: e.isIntersecting,
@@ -144,34 +146,34 @@ export function VideoFeed({
       const container = containerRef.current;
       if (!container) return;
 
-      if (e.key === "ArrowDown" || e.key === "j") {
+      if (e.key === 'ArrowDown' || e.key === 'j') {
         e.preventDefault();
         const nextIndex = Math.min(activeIndex + 1, videos.length - 1);
         const target = itemRefs.current[nextIndex];
-        debugLog("feed", "keydown next", {
+        debugLog('feed', 'keydown next', {
           key: e.key,
           activeIndex,
           nextIndex,
         });
-        target?.scrollIntoView({ behavior: "smooth", block: "start" });
-      } else if (e.key === "ArrowUp" || e.key === "k") {
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (e.key === 'ArrowUp' || e.key === 'k') {
         e.preventDefault();
         const prevIndex = Math.max(activeIndex - 1, 0);
         const target = itemRefs.current[prevIndex];
-        debugLog("feed", "keydown prev", {
+        debugLog('feed', 'keydown prev', {
           key: e.key,
           activeIndex,
           prevIndex,
         });
-        target?.scrollIntoView({ behavior: "smooth", block: "start" });
-      } else if (e.key === "m") {
-        debugLog("feed", "keydown mute toggle", { key: e.key });
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (e.key === 'm') {
+        debugLog('feed', 'keydown mute toggle', { key: e.key });
         setIsMuted((prev) => !prev);
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeIndex, videos.length]);
 
   const handleMuteToggle = useCallback(() => {
@@ -194,8 +196,7 @@ export function VideoFeed({
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
-          aria-hidden="true"
-        >
+          aria-hidden="true">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -204,9 +205,7 @@ export function VideoFeed({
           />
         </svg>
         <p className="text-lg font-medium">No videos found</p>
-        <p className="mt-1 text-sm text-gray-400">
-          Try changing the filter or import some videos
-        </p>
+        <p className="mt-1 text-sm text-gray-400">Try changing the filter or import some videos</p>
       </div>
     );
   }
@@ -215,18 +214,17 @@ export function VideoFeed({
     <div
       ref={containerRef}
       className="h-screen snap-y snap-mandatory overflow-y-scroll bg-black hide-scrollbar overscroll-y-contain"
-      style={{ scrollSnapType: "y mandatory" }}
-    >
+      style={{ scrollSnapType: 'y mandatory' }}>
       {videos.map((video, index) => (
         <div
           key={video.id}
           ref={setItemRef(index)}
           data-index={index}
-          className="h-screen w-full snap-start snap-always"
-        >
+          className="h-screen w-full snap-start snap-always">
           <VideoPlayer
             video={video}
             isActive={index === activeIndex}
+            isFirst={index === 0}
             isMuted={isMuted}
             onMuteToggle={handleMuteToggle}
           />
@@ -234,7 +232,9 @@ export function VideoFeed({
       ))}
 
       {/* Load more trigger */}
-      <div ref={loadMoreRef} className="flex h-20 items-center justify-center">
+      <div
+        ref={loadMoreRef}
+        className="flex h-20 items-center justify-center">
         {isLoadingMore && (
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
         )}

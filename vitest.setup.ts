@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom/vitest';
+import "@testing-library/jest-dom/vitest";
 
 // JSDOM doesn't implement scrollIntoView; mock it for keyboard navigation tests.
 if (!Element.prototype.scrollIntoView) {
@@ -6,9 +6,14 @@ if (!Element.prototype.scrollIntoView) {
 }
 
 // JSDOM's media methods throw "Not implemented"; stub them to avoid noise/errors.
-Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
+Object.defineProperty(HTMLMediaElement.prototype, "pause", {
   configurable: true,
   value: () => undefined,
+});
+
+Object.defineProperty(HTMLMediaElement.prototype, "play", {
+  configurable: true,
+  value: () => Promise.resolve(),
 });
 
 type IOEntryLike = Partial<IntersectionObserverEntry> & { target: Element };
@@ -23,10 +28,13 @@ class IntersectionObserverMock implements IntersectionObserver {
   private readonly callback: IntersectionObserverCallback;
   private readonly observed = new Set<Element>();
 
-  constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+  constructor(
+    callback: IntersectionObserverCallback,
+    options?: IntersectionObserverInit,
+  ) {
     this.callback = callback;
     this.root = options?.root ?? null;
-    this.rootMargin = options?.rootMargin ?? '';
+    this.rootMargin = options?.rootMargin ?? "";
     this.thresholds = Array.isArray(options?.threshold)
       ? options?.threshold
       : [options?.threshold ?? 0];
@@ -67,13 +75,13 @@ class IntersectionObserverMock implements IntersectionObserver {
   }
 }
 
-Object.defineProperty(globalThis, 'IntersectionObserver', {
+Object.defineProperty(globalThis, "IntersectionObserver", {
   configurable: true,
   value: IntersectionObserverMock,
 });
 
 // Expose to tests
-Object.defineProperty(globalThis, '__io', {
+Object.defineProperty(globalThis, "__io", {
   configurable: true,
   value: IntersectionObserverMock,
 });
