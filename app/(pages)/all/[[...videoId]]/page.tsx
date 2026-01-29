@@ -1,13 +1,9 @@
-import { FeedPageClient } from "@/app/components/FeedPageClient";
-import { ImportingScreen } from "@/app/components/ImportingScreen";
-import { Navigation } from "@/app/components/Navigation";
-import { getImportStatus, getInitialVideos } from "@/app/lib/feed.server";
+import { FeedPageClient } from '@/app/components/FeedPageClient';
+import { ImportingScreen } from '@/app/components/ImportingScreen';
+import { Navigation } from '@/app/components/Navigation';
+import { getImportStatus, getInitialVideos } from '@/app/lib/feed.server';
 
-export default async function AllPage({
-  params,
-}: {
-  params: { videoId?: string[] };
-}) {
+export default async function AllPage({ params }: { params: { videoId?: string[] } }) {
   const importing = await getImportStatus();
   if (importing) {
     return <ImportingScreen />;
@@ -16,7 +12,7 @@ export default async function AllPage({
   const { videoId } = await params;
   const initialVideoId = videoId?.[0] ?? null;
   const initial = await getInitialVideos({
-    type: "all",
+    type: 'all',
     limit: initialVideoId ? 200 : 5,
   });
 

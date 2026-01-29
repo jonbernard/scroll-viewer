@@ -1,18 +1,14 @@
-"use client";
+'use client';
 
-import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import Image from 'next/image';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { Video } from "@/app/lib/types";
+import type { Video } from '@/app/lib/types';
 
-import { debugLog } from "@/app/lib/debug";
-import {
-  getAvatarUrl,
-  getCoverUrl,
-  getVideoUrl,
-} from "@/app/lib/utils";
+import { debugLog } from '@/app/lib/debug';
+import { getAvatarUrl, getCoverUrl, getVideoUrl } from '@/app/lib/utils';
 
-import { VideoOverlay } from "./VideoOverlay";
+import { VideoOverlay } from './VideoOverlay';
 
 type WindowWithFirstUnmuteRestart = Window & {
   __svRestartedFirstUnmute?: boolean;
@@ -23,28 +19,22 @@ type WindowWithPlaybackStarted = Window & {
 };
 
 function hasRestartedFirstUnmuteThisPage() {
-  if (typeof window === "undefined") return false;
-  return Boolean(
-    (window as unknown as WindowWithFirstUnmuteRestart)
-      .__svRestartedFirstUnmute,
-  );
+  if (typeof window === 'undefined') return false;
+  return Boolean((window as unknown as WindowWithFirstUnmuteRestart).__svRestartedFirstUnmute);
 }
 
 function markRestartedFirstUnmuteThisPage() {
-  if (typeof window === "undefined") return;
-  (window as unknown as WindowWithFirstUnmuteRestart).__svRestartedFirstUnmute =
-    true;
+  if (typeof window === 'undefined') return;
+  (window as unknown as WindowWithFirstUnmuteRestart).__svRestartedFirstUnmute = true;
 }
 
 function hasUserStartedPlaybackThisPage() {
-  if (typeof window === "undefined") return false;
-  return Boolean(
-    (window as unknown as WindowWithPlaybackStarted).__svPlaybackStarted,
-  );
+  if (typeof window === 'undefined') return false;
+  return Boolean((window as unknown as WindowWithPlaybackStarted).__svPlaybackStarted);
 }
 
 function markUserStartedPlaybackThisPage() {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   (window as unknown as WindowWithPlaybackStarted).__svPlaybackStarted = true;
 }
 
@@ -90,7 +80,7 @@ export function VideoPlayer({
     const videoEl = videoRef.current;
     if (!videoEl) return;
 
-    debugLog("player", "active effect", {
+    debugLog('player', 'active effect', {
       videoId: video.id,
       isActive,
       isMuted,
@@ -104,7 +94,7 @@ export function VideoPlayer({
       // On initial page load, keep the first video paused until the user explicitly starts playback.
       // This avoids autoplay policies and guarantees sound once the user interacts.
       if (isFirst && !hasUserStartedPlaybackThisPage()) {
-        debugLog("player", "initial playback gated", { videoId: video.id });
+        debugLog('player', 'initial playback gated', { videoId: video.id });
         videoEl.pause();
         setShowControls(true);
         return;
@@ -112,12 +102,9 @@ export function VideoPlayer({
 
       const playResult = videoEl.play();
       // In browsers this is a Promise; in some environments it may be void.
-      if (
-        playResult &&
-        typeof (playResult as Promise<void>).catch === "function"
-      ) {
+      if (playResult && typeof (playResult as Promise<void>).catch === 'function') {
         (playResult as Promise<void>).catch(async (err) => {
-          debugLog("player", "play() rejected", {
+          debugLog('player', 'play() rejected', {
             videoId: video.id,
             name: err instanceof Error ? err.name : undefined,
             message: err instanceof Error ? err.message : String(err),
@@ -133,11 +120,11 @@ export function VideoPlayer({
             try {
               videoEl.muted = true;
               await videoEl.play();
-              debugLog("player", "fallback muted autoplay ok", {
+              debugLog('player', 'fallback muted autoplay ok', {
                 videoId: video.id,
               });
             } catch {
-              debugLog("player", "fallback muted autoplay failed", {
+              debugLog('player', 'fallback muted autoplay failed', {
                 videoId: video.id,
               });
               // ignore
@@ -146,7 +133,7 @@ export function VideoPlayer({
         });
       }
     } else {
-      debugLog("player", "pause inactive", { videoId: video.id });
+      debugLog('player', 'pause inactive', { videoId: video.id });
       videoEl.pause();
       videoEl.currentTime = 0;
     }
@@ -160,7 +147,7 @@ export function VideoPlayer({
       if (!effectiveMuted && videoEl.volume === 0) {
         videoEl.volume = 1;
       }
-      debugLog("player", "mute applied", {
+      debugLog('player', 'mute applied', {
         videoId: video.id,
         effectiveMuted,
         volume: videoEl.volume,
@@ -186,7 +173,7 @@ export function VideoPlayer({
     const handleLoadedMetadata = () => {
       setDuration(videoEl.duration);
       setIsLoaded(true);
-      debugLog("player", "loadedmetadata", {
+      debugLog('player', 'loadedmetadata', {
         videoId: video.id,
         duration: videoEl.duration,
       });
@@ -195,7 +182,7 @@ export function VideoPlayer({
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
     const handleError = () => {
-      debugLog("player", "media error event", {
+      debugLog('player', 'media error event', {
         videoId: video.id,
         errorCode: videoEl.error?.code ?? null,
         readyState: videoEl.readyState,
@@ -204,18 +191,18 @@ export function VideoPlayer({
       });
     };
 
-    videoEl.addEventListener("timeupdate", handleTimeUpdate);
-    videoEl.addEventListener("loadedmetadata", handleLoadedMetadata);
-    videoEl.addEventListener("play", handlePlay);
-    videoEl.addEventListener("pause", handlePause);
-    videoEl.addEventListener("error", handleError);
+    videoEl.addEventListener('timeupdate', handleTimeUpdate);
+    videoEl.addEventListener('loadedmetadata', handleLoadedMetadata);
+    videoEl.addEventListener('play', handlePlay);
+    videoEl.addEventListener('pause', handlePause);
+    videoEl.addEventListener('error', handleError);
 
     return () => {
-      videoEl.removeEventListener("timeupdate", handleTimeUpdate);
-      videoEl.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      videoEl.removeEventListener("play", handlePlay);
-      videoEl.removeEventListener("pause", handlePause);
-      videoEl.removeEventListener("error", handleError);
+      videoEl.removeEventListener('timeupdate', handleTimeUpdate);
+      videoEl.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      videoEl.removeEventListener('play', handlePlay);
+      videoEl.removeEventListener('pause', handlePause);
+      videoEl.removeEventListener('error', handleError);
     };
   }, [video.id]);
 
@@ -272,10 +259,10 @@ export function VideoPlayer({
       if (!videoEl || !duration) return;
 
       const step = duration * 0.05; // 5% of duration
-      if (e.key === "ArrowRight") {
+      if (e.key === 'ArrowRight') {
         e.preventDefault();
         videoEl.currentTime = Math.min(videoEl.currentTime + step, duration);
-      } else if (e.key === "ArrowLeft") {
+      } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
         videoEl.currentTime = Math.max(videoEl.currentTime - step, 0);
       }
@@ -293,15 +280,11 @@ export function VideoPlayer({
         setAutoplayFallbackMuted(false);
 
         // If the first video started muted due to autoplay policy, restart it once per page load when sound is enabled.
-        if (
-          isFirst &&
-          !restartedOnFirstUnmuteRef.current &&
-          !hasRestartedFirstUnmuteThisPage()
-        ) {
+        if (isFirst && !restartedOnFirstUnmuteRef.current && !hasRestartedFirstUnmuteThisPage()) {
           restartedOnFirstUnmuteRef.current = true;
           markRestartedFirstUnmuteThisPage();
           videoEl.currentTime = 0;
-          debugLog("player", "restart on first unmute", { videoId: video.id });
+          debugLog('player', 'restart on first unmute', { videoId: video.id });
         }
       }
       videoEl.muted = nextMuted;
@@ -326,7 +309,7 @@ export function VideoPlayer({
       const shareUrl = window.location.href;
       if (navigator.share) {
         await navigator.share({
-          title: "Video",
+          title: 'Video',
           url: shareUrl,
         });
         return;
@@ -361,8 +344,7 @@ export function VideoPlayer({
           type="button"
           className="h-full w-full border-0 bg-transparent p-0"
           onClick={handleVideoToggle}
-          aria-label={isPlaying ? "Pause video" : "Play video"}
-        >
+          aria-label={isPlaying ? 'Pause video' : 'Play video'}>
           <video
             ref={videoRef}
             src={videoUrl}
@@ -382,8 +364,7 @@ export function VideoPlayer({
             type="button"
             className="group relative h-11 w-11 overflow-hidden rounded-full ring-2 ring-white/80 transition active:scale-95"
             aria-label={`@${video.author.uniqueId}`}
-            title={`@${video.author.uniqueId}`}
-          >
+            title={`@${video.author.uniqueId}`}>
             {avatarUrl ? (
               <Image
                 src={avatarUrl}
@@ -405,16 +386,14 @@ export function VideoPlayer({
             type="button"
             onClick={onHide}
             className="flex flex-col items-center gap-1 text-white active:scale-95"
-            aria-label="Hide"
-          >
+            aria-label="Hide">
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/25 backdrop-blur-sm">
               <svg
                 className="h-6 w-6"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                aria-hidden="true"
-              >
+                aria-hidden="true">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -423,9 +402,7 @@ export function VideoPlayer({
                 />
               </svg>
             </div>
-            <span className="text-[11px] font-semibold text-white/90">
-              Hide
-            </span>
+            <span className="text-[11px] font-semibold text-white/90">Hide</span>
           </button>
 
           {/* Share */}
@@ -433,15 +410,13 @@ export function VideoPlayer({
             type="button"
             onClick={handleShare}
             className="flex flex-col items-center gap-1 text-white/95 active:scale-95"
-            aria-label="Share"
-          >
+            aria-label="Share">
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/25 backdrop-blur-sm">
               <svg
                 className="h-6 w-6"
                 viewBox="0 0 24 24"
                 fill="none"
-                aria-hidden="true"
-              >
+                aria-hidden="true">
                 <path
                   d="M14 9l7 3-7 3V9Z"
                   stroke="currentColor"
@@ -456,9 +431,7 @@ export function VideoPlayer({
                 />
               </svg>
             </div>
-            <span className="text-[11px] font-semibold text-white/90">
-              Share
-            </span>
+            <span className="text-[11px] font-semibold text-white/90">Share</span>
           </button>
 
           {/* Mute */}
@@ -466,8 +439,7 @@ export function VideoPlayer({
             type="button"
             onClick={handleMuteClick}
             className="flex flex-col items-center gap-1 text-white active:scale-95"
-            aria-label={isMuted ? "Unmute" : "Mute"}
-          >
+            aria-label={isMuted ? 'Unmute' : 'Mute'}>
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/25 backdrop-blur-sm">
               {isMuted ? (
                 <svg
@@ -475,8 +447,7 @@ export function VideoPlayer({
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
-                  aria-hidden="true"
-                >
+                  aria-hidden="true">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -496,8 +467,7 @@ export function VideoPlayer({
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
-                  aria-hidden="true"
-                >
+                  aria-hidden="true">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -508,7 +478,7 @@ export function VideoPlayer({
               )}
             </div>
             <span className="text-[11px] font-semibold text-white/90">
-              {isMuted ? "Muted" : "Sound"}
+              {isMuted ? 'Muted' : 'Sound'}
             </span>
           </button>
         </div>
@@ -522,8 +492,7 @@ export function VideoPlayer({
                   className="h-12 w-12 text-white"
                   fill="currentColor"
                   viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
+                  aria-hidden="true">
                   <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
                 </svg>
               ) : (
@@ -531,8 +500,7 @@ export function VideoPlayer({
                   className="h-12 w-12 text-white"
                   fill="currentColor"
                   viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
+                  aria-hidden="true">
                   <path d="M8 5v14l11-7z" />
                 </svg>
               )}
@@ -550,8 +518,7 @@ export function VideoPlayer({
           aria-label="Video progress"
           aria-valuenow={Math.round(progressPercent)}
           aria-valuemin={0}
-          aria-valuemax={100}
-        >
+          aria-valuemax={100}>
           <div
             className="h-full bg-[#E54D2E] transition-[width] duration-100"
             style={{ width: `${progressPercent}%` }}

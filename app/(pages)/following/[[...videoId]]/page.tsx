@@ -1,12 +1,12 @@
-import { FeedPageClient } from "@/app/components/FeedPageClient";
-import { ImportingScreen } from "@/app/components/ImportingScreen";
-import { Navigation } from "@/app/components/Navigation";
+import { FeedPageClient } from '@/app/components/FeedPageClient';
+import { ImportingScreen } from '@/app/components/ImportingScreen';
+import { Navigation } from '@/app/components/Navigation';
 import {
   getAuthorSummaryById,
   getFollowingAuthors,
   getImportStatus,
   getInitialVideos,
-} from "@/app/lib/feed.server";
+} from '@/app/lib/feed.server';
 
 export default async function FollowingPage({
   params,
@@ -26,7 +26,7 @@ export default async function FollowingPage({
 
   const [initial, followingAuthors, selectedAuthor] = await Promise.all([
     getInitialVideos({
-      type: "following",
+      type: 'following',
       authorId,
       limit: initialVideoId ? 200 : 5,
     }),

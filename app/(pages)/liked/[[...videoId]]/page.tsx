@@ -1,15 +1,10 @@
-import { FeedPageClient } from "@/app/components/FeedPageClient";
-import { ImportingScreen } from "@/app/components/ImportingScreen";
-import { Navigation } from "@/app/components/Navigation";
-import { getImportStatus, getInitialVideos } from "@/app/lib/feed.server";
+import { FeedPageClient } from '@/app/components/FeedPageClient';
+import { ImportingScreen } from '@/app/components/ImportingScreen';
+import { Navigation } from '@/app/components/Navigation';
+import { getImportStatus, getInitialVideos } from '@/app/lib/feed.server';
 
-export default async function LikedPage({
-  params,
-}: {
-  params: { videoId?: string[] };
-}) {
+export default async function LikedPage({ params }: { params: { videoId?: string[] } }) {
   const importing = await getImportStatus();
-  console.log("JB | LikedPage | importing:", importing);
   if (importing) {
     return <ImportingScreen />;
   }
@@ -17,7 +12,7 @@ export default async function LikedPage({
   const { videoId } = await params;
   const initialVideoId = videoId?.[0] ?? null;
   const initial = await getInitialVideos({
-    type: "liked",
+    type: 'liked',
     limit: initialVideoId ? 200 : 5,
   });
 
